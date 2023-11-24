@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to WAV Converter</title>
+</head>
+<body>
+    <h1>Video to WAV Converter</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="videoFile" accept="video/*" required>
+        <button type="button" onclick="uploadVideo()">Convert to WAV</button>
+    </form>
+    <p id="conversionStatus"></p>
+    <button id="shareButton" style="display:none;" onclick="shareLink()">Share</button>
+    <a id="downloadButton" href="" download="converted.wav" style="display:none;">
+        <button>Download</button>
+    </a>
+
+    <script>
+        function uploadVideo() {
+            var form = document.getElementById('uploadForm');
+            var statusElement = document.getElementById('conversionStatus');
+            var shareButton = document.getElementById('shareButton');
+            var downloadButton = document.getElementById('downloadButton');
+            var formData = new FormData(form);
+
+            statusElement.textContent = 'Converting...';
+
+            fetch('convert.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusElement.textContent = 'Conversion successful.';
+                    shareButton.style.display = 'inline';
+                    downloadButton.href = data.wavLink;
+                    downloadButton.style.display = 'inline';
+                } else {
+                    statusElement.textContent = 'Conversion failed. Please try again.';
+                    shareButton.style.display = 'none';
+                    downloadButton.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusElement.textContent = 'An error occurred during conversion.';
+                shareButton.style.display = 'none';
+                downloadButton.style.display = 'none';
+            });
+        }
+
+        function shareLink() {
+            var downloadButton = document.getElementById('downloadButton');
+            navigator.clipboard.writeText(downloadButton.href)
+                .then(() => alert('Link copied to clipboard'))
+                .catch(err => console.error('Unable to copy link', err));
+        }
+    </script>
+</body>
+</html>
