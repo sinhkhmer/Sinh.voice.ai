@@ -4,105 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video to WAV Converter</title>
-<style>
-    body {
-    font-family: 'Arial', sans-serif;
-    margin: 20px;
-}
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
 
-h1 {
-    color: #333;
-}
+        h1 {
+            color: #333;
+            text-align: center;
+        }
 
-form {
-    margin-bottom: 20px;
-}
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
 
-input {
-    margin-right: 10px;
-}
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-button {
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+        button:hover {
+            background-color: #45a049;
+        }
 
-button:hover {
-    background-color: #45a049;
-}
+        p {
+            color: #333;
+            text-align: center;
+        }
 
-p {
-    color: #333;
-}
+        #downloadButton {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
 
-#shareButton, #downloadButton {
-    display: none;
-    margin-top: 10px;
-}
+        #downloadButton a {
+            display: inline-block;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-#downloadButton button {
-    cursor: pointer;
-}
+        #downloadButton a:hover {
+            background-color: #2980b9;
+        }
 
-</style>
+        @media (min-width: 600px) {
+            /* Adjust styles for screens wider than 600px */
+            body {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: #fff;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+            }
+
+            input {
+                width: calc(100% - 20px);
+            }
+
+            button {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
 </head>
 <body>
     <h1>Video to WAV Converter</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="videoFile" accept="video/*" required>
-        <button type="button" onclick="uploadVideo()">Convert to WAV</button>
-    </form>
+    <input type="file" id="videoInput" accept="video/*" />
+    <button onclick="convertVideo()">Convert to WAV</button>
     <p id="conversionStatus"></p>
-    <button id="shareButton" style="display:none;" onclick="shareLink()">Share</button>
-    <a id="downloadButton" href="" download="converted.wav" style="display:none;">
-        <button>Download</button>
-    </a>
+    <div id="downloadButton">
+        <a id="downloadLink" href="" download="output.wav">Download WAV</a>
+    </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg/dist/ffmpeg.min.js"></script>
     <script>
-        function uploadVideo() {
-            var form = document.getElementById('uploadForm');
-            var statusElement = document.getElementById('conversionStatus');
-            var shareButton = document.getElementById('shareButton');
-            var downloadButton = document.getElementById('downloadButton');
-            var formData = new FormData(form);
+       async function convertVideo() {
+    const videoInput = document.getElementById('videoInput');
+    const conversionStatus = document.getElementById('conversionStatus');
+    const downloadButton = document.getElementById('downloadButton');
+    const downloadLink = document.getElementById('downloadLink');
 
-            statusElement.textContent = 'Converting...';
+    const videoFile = videoInput.files[0];
+    if (!videoFile) {
+        conversionStatus.textContent = 'Please select a video file.';
+        return;
+    }
 
-            fetch('convert.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusElement.textContent = 'Conversion successful.';
-                    shareButton.style.display = 'inline';
-                    downloadButton.href = data.wavLink;
-                    downloadButton.style.display = 'inline';
-                } else {
-                    statusElement.textContent = 'Conversion failed. Please try again.';
-                    shareButton.style.display = 'none';
-                    downloadButton.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                statusElement.textContent = 'An error occurred during conversion.';
-                shareButton.style.display = 'none';
-                downloadButton.style.display = 'none';
-            });
-        }
+    conversionStatus.textContent = 'Converting...'; // Set the initial text
 
-        function shareLink() {
-            var downloadButton = document.getElementById('downloadButton');
-            navigator.clipboard.writeText(downloadButton.href)
-                .then(() => alert('Link copied to clipboard'))
-                .catch(err => console.error('Unable to copy link', err));
-        }
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    await ffmpeg.load();
+
+    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+
+    await ffmpeg.run('-i', 'input.mp4', 'output.wav');
+
+    const wavData = ffmpeg.FS('readFile', 'output.wav');
+
+    conversionStatus.textContent = 'Conversion successful.'; // Update the text
+    downloadLink.href = URL.createObjectURL(new Blob([wavData.buffer], { type: 'audio/wav' }));
+    downloadButton.style.display = 'block';
+}
+
     </script>
 </body>
 </html>
